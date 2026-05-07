@@ -23,8 +23,8 @@ jobs:
             platform: linux-arm64
             tds_platform: aarch64-linux
           - os: macos-latest
-            platform: macos-arm64
-            tds_platform: aarch64-darwin
+            platform: macos-universal
+            tds_platform: universal-darwin
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -45,13 +45,20 @@ jobs:
           echo "$HOME/bin" >> $GITHUB_PATH
 
       - name: Build
-        run: blade build //src:aptex
+        run: |
+          ARCH_FLAGS="${{ matrix.platform == 'macos-universal' && '-arch arm64 -arch x86_64' || '' }}"
+          blade build //src:aptex --cflags="$ARCH_FLAGS" --cxxflags="$ARCH_FLAGS" --linkflags="$ARCH_FLAGS"
         env:
           CC: ${{ runner.os == 'macOS' && 'clang' || 'gcc' }}
           CXX: ${{ runner.os == 'macOS' && 'clang++' || 'g++' }}
+          CFLAGS: ${{ matrix.platform == 'macos-universal' && '-arch arm64 -arch x86_64' || '' }}
+          CXXFLAGS: ${{ matrix.platform == 'macos-universal' && '-arch arm64 -arch x86_64' || '' }}
+          LDFLAGS: ${{ matrix.platform == 'macos-universal' && '-arch arm64 -arch x86_64' || '' }}
 
       - name: Unit Tests
-        run: blade test //test/unit/...
+        run: |
+          ARCH_FLAGS="${{ matrix.platform == 'macos-universal' && '-arch arm64 -arch x86_64' || '' }}"
+          blade test //test/unit/... --cflags="$ARCH_FLAGS" --cxxflags="$ARCH_FLAGS" --linkflags="$ARCH_FLAGS"
         env:
           CC: ${{ runner.os == 'macOS' && 'clang' || 'gcc' }}
           CXX: ${{ runner.os == 'macOS' && 'clang++' || 'g++' }}
